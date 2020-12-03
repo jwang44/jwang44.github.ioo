@@ -1,0 +1,100 @@
+# Notes on Django
+
+Django use `view` to connect `model`(Database) and `template`(HTML)
+
+All templates are base upon `base.html`, use `{% extends "base.html" %}` and `{% block content/title %}` to extend the base template.
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+these two create tables in database, but don't add data, to add data, run
+```
+python manage.py loaddata main_app/fixtures/*.json
+```
+Then, start the server by running
+```
+python manage.py runserver 3122(whatever port available)
+```
+
+## Cantus Details
+
+In `./cantusdb`, there are `urls.py`, and `settings.py`
+
+urls.py:
+```python
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path(r"", include("articles.urls")),
+    path(r"", include("main_app.urls")),
+]
+```
+---
+
+**Three apps: main_app, users, and articles**
+
+### main_app
+
+```
+./main_app
+    fixtures (data)
+    management (add_* commands)
+    models
+        base_model, century, chant, feast... source.py
+    views
+        feast, genre, indexer, office, source, views.py
+    templates
+        feast detail/list, genre detail/list...html
+    admin.py
+    urls.py
+```
+
+
+```python
+# urls.py
+from django.urls import path
+from main_app.views import IndexerDetailView, IndexerListView, SourceListView, SourceDetailView
+urlpatterns = [
+    path("indexers/", IndexerListView.as_view(), name="indexer-list"),
+    path("indexers/<int:pk>", IndexerDetailView.as_view(), name="indexer-detail"),
+    ...
+    path("sources/", SourceListView.as_view(), name="source-list"),
+    path("sources/<int:pk>", SourceDetailView.as_view(), name="source-detail"),
+]
+```
+
+```python
+# ./models/base_model.py
+class BaseModel(models.Model):
+#All other models in `./models` inherit from `base_model`, including century, chant, feast,...source.py
+```
+```python
+# ./views/<whatever>.py
+from django.views.generic import DetailView, ListView
+from main_app.models import <whatever>
+# https://www.cnblogs.com/xueweihan/p/11734151.html
+# 类视图写法，在urls.py中使用as_view()将其转换回函数视图，链接到url
+# model 是使用的模型
+# context_object_name 指定从模型获取的变量名，这个变量被传递给模版
+# template_name 指定这个视图渲染的模版
+class WhateverDetailView(DetailView):
+    model = Whatever
+    context_object_name = "Whatever"
+    template_name = "Whatever_detail.html"
+```
+---
+
+## Database details
+
+In models such as `chant.py`, we defined in `class Chant(BaseModel)` something like `x=models.CharField(parameters)`
+
+* `CharField` and `TextField`: both text, but `CharField` is limited in length, while `TextField` is unlimited.
+* `PositiveIntergerField`: such as sequence number
+* `ForeignKey`: many-to-one relation, such as *chant* and *source*
+* `NullBooleanField`: can be true, false, or null
+* `URLField`: such as image link
+* `constraints` are defined in `class Meta:`, using `models.CheckConstraint`
+* `ManyToManyField`: such as `current_editors, proof_readers`...
+
+\<pk> is `primary key`
